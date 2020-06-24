@@ -316,7 +316,7 @@ public class MainActivity extends AppCompatActivity {
             System.out.println("       IMP IMP IMP       SHELDON LEE COOPER 11\n" + 100);
 
             sharingIntent.setType("image/jpg");
-            sharingIntent.putExtra(Intent.EXTRA_EMAIL,"radhikapadiyar@gmail.com");
+            sharingIntent.putExtra(Intent.EXTRA_EMAIL,"dummy@gmail.com");
             sharingIntent.putExtra(Intent.EXTRA_SUBJECT,"aVYSH");
 
             //File myAttachmentfile =getFileStreamPath(Environment.getExternalStorageDirectory() + "/new-folders/sample.jpg");
