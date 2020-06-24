@@ -1,0 +1,2 @@
+rootProject.name='QRCG'
+include ':app'
