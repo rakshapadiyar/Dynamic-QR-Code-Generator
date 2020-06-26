@@ -1,1 +1,1 @@
-# bazinga
+# QR Code generation and sharing

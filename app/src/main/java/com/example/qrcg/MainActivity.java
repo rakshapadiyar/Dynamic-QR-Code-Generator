@@ -175,6 +175,7 @@ public class MainActivity extends AppCompatActivity {
             Intent sharingIntent = new Intent(Intent.ACTION_SEND);
             Uri screenshotUri = Uri.parse(Environment.getExternalStorageDirectory() + "/new-folders/sample.jpg");
             sharingIntent.setType("image/jpg");
+
             sharingIntent.putExtra(Intent.EXTRA_EMAIL,"xyzr@gmail.com");
             sharingIntent.putExtra(Intent.EXTRA_SUBJECT,"AVYSH");
             sharingIntent.putExtra(Intent.EXTRA_STREAM,Uri.parse("file://"+screenshotUri));
