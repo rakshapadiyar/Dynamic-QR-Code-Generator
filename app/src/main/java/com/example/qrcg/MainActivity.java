@@ -40,6 +40,30 @@ public class MainActivity extends AppCompatActivity {
         w=(WebView)findViewById(R.id.w);
         w.getSettings().setJavaScriptEnabled(true);
         w.getSettings().setDomStorageEnabled(true);
+        
+        WebView mWebView = new WebView(this);
+        WebSettings settings = mWebView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setUseWideViewPort(true);
+        settings.setSaveFormData(true);
+        settings.setSupportZoom(true);
+        settings.setBuiltInZoomControls(false);
+        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
+        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+        settings.setDomStorageEnabled(true);
+        mWebView.setScrollBarStyle(WebView.SCROLLBARS_OUTSIDE_OVERLAY);
+        mWebView.setScrollbarFadingEnabled(true);
+        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
+        settings.setAppCacheEnabled(true);
+        w.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
+        } else {
+            mWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
+        }
 
         mNetworkReceiver = new NetworkChangeReceiver();
         //registerNetworkBroadcastForNougat();
