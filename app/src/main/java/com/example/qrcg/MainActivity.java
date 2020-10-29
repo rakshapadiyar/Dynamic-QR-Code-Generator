@@ -1,306 +1,274 @@
 package com.example.qrcg;
-import androidx.appcompat.app.AlertDialog;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
 import android.Manifest;
+import android.annotation.TargetApi;
 import android.app.DownloadManager;
-import android.content.BroadcastReceiver;
-import android.content.Context;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.Settings;
 import android.util.Base64;
+import android.util.Log;
 import android.webkit.DownloadListener;
-import android.webkit.WebSettings;
+import android.webkit.WebResourceError;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
-import android.widget.Toast;
+import android.webkit.WebViewClient;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
+
 import java.io.File;
 import java.io.FileOutputStream;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 public class MainActivity extends AppCompatActivity {
-    WebView w;
-    private BroadcastReceiver mNetworkReceiver; //Object of BroadcastReceiver
-    private long downloadID;
-    public static int REQUEST_PERMISSION=1;
+
+    //View Declarations
+    WebView myWebview;
+
+    //Object Declarations
+    ProgressDialog dialog;
+    DownloadManager downloadManager;
+
+    //Variable Declarations
+    boolean isAppFirstTime;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        w=(WebView)findViewById(R.id.w);
-        w.getSettings().setJavaScriptEnabled(true);
-        w.getSettings().setDomStorageEnabled(true);
-        
-        WebView mWebView = new WebView(this);
-        WebSettings settings = mWebView.getSettings();
-        settings.setJavaScriptEnabled(true);
-        settings.setLoadWithOverviewMode(true);
-        settings.setUseWideViewPort(true);
-        settings.setSaveFormData(true);
-        settings.setSupportZoom(true);
-        settings.setBuiltInZoomControls(false);
-        settings.setLayoutAlgorithm(WebSettings.LayoutAlgorithm.NARROW_COLUMNS);
-        settings.setCacheMode(WebSettings.LOAD_NO_CACHE);
-        settings.setDomStorageEnabled(true);
-        mWebView.setScrollBarStyle(WebView.SCROLLBARS_OUTSIDE_OVERLAY);
-        mWebView.setScrollbarFadingEnabled(true);
-        settings.setRenderPriority(WebSettings.RenderPriority.HIGH);
-        settings.setCacheMode(WebSettings.LOAD_CACHE_ELSE_NETWORK);
-        settings.setAppCacheEnabled(true);
-        w.setScrollBarStyle(View.SCROLLBARS_INSIDE_OVERLAY);
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            mWebView.setLayerType(View.LAYER_TYPE_HARDWARE, null);
-        } else {
-            mWebView.setLayerType(View.LAYER_TYPE_SOFTWARE, null);
-        }
+        isAppFirstTime = false;
+        initView();
+        checkAndAskPermission();
 
-        mNetworkReceiver = new NetworkChangeReceiver();
-        //registerNetworkBroadcastForNougat();
+    }
 
+    private void initView() {
 
-        permission_fn(); //Method to check if user has allowed the permission required
-
-        w.loadUrl("https://qrcode-avysh.herokuapp.com");
-        w.setWebViewClient(new WebViewController());
-        WebSettings ws = w.getSettings();
-        ws.setJavaScriptEnabled(true);
-
-        w.setDownloadListener(new DownloadListener() { //Loads the file from the hosted location
-            @Override
-            public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
-                try {
-                    String root = Environment.getExternalStorageDirectory().toString();
-                    File file = new File(root + "/new-folders");
-                    if(!file.exists())
-                    {
-                        file.mkdirs();
-                    }
-
-                    if (url != null) {
-                        String attachment = parseBase64(url);
-                        byte[] byteArr = Base64.decode(attachment, Base64.DEFAULT);
-                        File f = new File(file,"sample.jpg");
-                        FileOutputStream fo = new FileOutputStream(f);
-                        fo.write(byteArr);
-                        fo.close();
-                        Toast.makeText(getApplicationContext(), "File downloading", Toast.LENGTH_SHORT).show();
-                        beginDownload();
-
-                    }
-                }
-                catch (Exception e){
-                    e.printStackTrace();
-                }
-            }
-        });
-    } //OnCreate Ends here
-
-    /*private void registerNetworkBroadcastForNougat() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            registerReceiver(mNetworkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            registerReceiver(mNetworkReceiver, new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION));
-        }
-    }*/
-
-
-
-    //---------------------------------------------------------------------------------------------------------------------------------------
-   //Never called
-  /* private BroadcastReceiver onDownloadComplete = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            //Fetching the download id received with the broadcast
-            long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-            //System.out.println("Everrrrrrrrrrrrr");
-            //Checking if the received broadcast is for our enqueued download by matching download id
-            if (downloadID == id) {
-                String u="https://qrcode-avysh.herokuapp.com";
-                Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(u));
-                startActivity(i);
-            }
-        }
-    };*/
-
-
-    //----------------------------------------------------------------------------------------------------------------------------------------
-
-    private String parseBase64(String url) {
         try {
 
-            Pattern pattern = Pattern.compile("((?<=base64,).*\\s*)",Pattern.DOTALL|Pattern.MULTILINE);
-            Matcher matcher = pattern.matcher(url);
-            if (matcher.find()) {
-                return matcher.group().toString();
-            } else {
-                return "";
-            }
-        }
-        catch (Exception e) {
-            e.printStackTrace();
+            myWebview = (WebView) findViewById(R.id.qr_code_generator_webview);
+            downloadManager = (DownloadManager) MainActivity.this.getSystemService(DOWNLOAD_SERVICE);
 
-        }
-        return "";
-    }
-
-
-    //-----------------------------------------------------------------------------------------------------------------------------------------
-    @Override
-    public void onDestroy() {
-        super.onDestroy();
-        unregisterNetworkChanges();
-    }
-
-    private void unregisterNetworkChanges() {
-        try {
-            unregisterReceiver(mNetworkReceiver);
-        } catch (IllegalArgumentException e) {
-            e.printStackTrace();
+        } catch (Exception e) {
+            Log.e("ERROR", "Error in MainActivity (initView) -->" + e.getMessage());
         }
     }
 
-    //------------------------------------------------------------------------------------------------------------------------------------------
-
-    private void beginDownload(){
-
-        String url="https://qrcode-avysh.herokuapp.com";
-        File file=new File(getExternalFilesDir(null),"Dummy");
-        /*
-        Create a DownloadManager.Request with all the information necessary to start the download
-         */
-        DownloadManager.Request request=new DownloadManager.Request(Uri.parse(url))
-                .setTitle("Downloaded file")// Title of the Download Notification
-                .setDescription("Downloading")// Description of the Download Notification
-                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE)// Visibility of the download Notification
-                .setDestinationUri(Uri.fromFile(file))// Uri of the destination file
-                //.setRequiresCharging(false)// Set if charging is required to begin the download
-                .setAllowedOverMetered(true)// Set if download is allowed on Mobile network
-                .setAllowedOverRoaming(true);// Set if download is allowed on roaming network
-        DownloadManager downloadManager= (DownloadManager) getSystemService(DOWNLOAD_SERVICE);
-        downloadID = downloadManager.enqueue(request);// enqueue puts the download request in the queue.
-        registerReceiver(
-                new NetworkChangeReceiver(),
-                new IntentFilter(ConnectivityManager.CONNECTIVITY_ACTION)
-        );
+    //Check permission and ask if needed,
+    private void checkAndAskPermission() {
 
         try {
-            Intent sharingIntent = new Intent(Intent.ACTION_SEND);
-            Uri screenshotUri = Uri.parse(Environment.getExternalStorageDirectory() + "/new-folders/sample.jpg");
-            sharingIntent.setType("image/jpg");
 
-            sharingIntent.putExtra(Intent.EXTRA_EMAIL,"xyzr@gmail.com");
-            sharingIntent.putExtra(Intent.EXTRA_SUBJECT,"AVYSH");
-            sharingIntent.putExtra(Intent.EXTRA_STREAM,Uri.parse("file://"+screenshotUri));
-            sharingIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            startActivity(Intent.createChooser(sharingIntent, "Share using"));
-            }
-        catch (Exception e)
-        {
-            System.out.println("Error");
+            ActivityCompat.requestPermissions(MainActivity.this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE}, 1);
 
-        }
-
-    }
-
-    //-----------------------------------------------------------------------------------------------------------------------------------
-
-
-    private void permission_fn()
-    {
-        if(ContextCompat.checkSelfPermission(MainActivity.this,Manifest.permission.WRITE_EXTERNAL_STORAGE)== PackageManager.PERMISSION_GRANTED)
-        {
-            return;
-        }
-        else
-            {
-                requestStoragePermission();
-            }
-    }
-
-
-    //-------------------------------------------------------------------------------------------------------------------------------------------------
-
-    private  void requestStoragePermission()
-    {
-        if(ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.WRITE_EXTERNAL_STORAGE))
-        {
-            new AlertDialog.Builder(this)
-                    .setTitle("Permission Needed")
-                    .setMessage("Permission is needed to save files in your device...")
-                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            ActivityCompat.requestPermissions(MainActivity.this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_PERMISSION);
-
-                        }
-                    })
-                    .setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
-                        @Override
-                        public void onClick(DialogInterface dialog, int which) {
-                            dialog.dismiss();
-                            Toast.makeText(getApplicationContext(),"Sorry, app doesn't work without the requested permission",Toast.LENGTH_LONG).show();
-                            finishAndRemoveTask(); //Closes the app
-                        }
-                    }).create().show();
-        }
-        else
-        {
-            ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},REQUEST_PERMISSION);
+        } catch (Exception e) {
+            Log.e("ERROR", "Error in MainActivity (askPermission) -->" + e.getMessage());
         }
     }
-
-    //-----------------------------------------------------------------------------------------------------------------------------------------
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions,  int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == REQUEST_PERMISSION) {
 
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                Toast.makeText(this, "Thanks for enabling the permission", Toast.LENGTH_SHORT).show();
-            }
+        loadWebview();
 
-            else {
-                boolean showRationale = shouldShowRequestPermissionRationale( Manifest.permission.WRITE_EXTERNAL_STORAGE );
-                if (! showRationale) {
-                    Toast.makeText(getApplicationContext(),"Sorry, app doesn't work without the requested permission \n Reinstall the app",Toast.LENGTH_LONG).show();
-                    finishAndRemoveTask();
-                    // user also CHECKED "never ask again"
-                    // you can either enable some fall back,
-                    // disable features of your app
-                    // or open another dialog explaining
-                    // again the permission and directing to
-                    // the app setting
+        switch (requestCode) {
+
+            case 1: {
+
+                if (grantResults.length > 0) {
+
+                    int readExternalStorage = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE);
+                    int writeExternalStorage = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+                    if (readExternalStorage != PackageManager.PERMISSION_GRANTED || writeExternalStorage != PackageManager.PERMISSION_GRANTED) {
+
+                        if (ActivityCompat.shouldShowRequestPermissionRationale(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+
+                            if (isAppFirstTime) {
+                                checkAndAskPermission();
+                            }
+
+                        } else {
+                            showPromptToEnablePermission();
+                        }
+                    }
                 }
-
-                else {
-                    Toast.makeText(this, "Please allow the Permission", Toast.LENGTH_SHORT).show();
-                    permission_fn();
-                }
-
-
             }
         }
-
     }
 
-    //--------------------------------------------------------------------------------------------------------------------------------------------
+    private void loadWebview () {
+
+        try {
+
+            String termsConditionUrl = "https://avysh-2.herokuapp.com";
+
+            myWebview.getSettings().setJavaScriptEnabled(true);
+            myWebview.setWebViewClient(new QRCodeWebviewClientObj());
+            myWebview.loadUrl(termsConditionUrl);
+            myWebview.setDownloadListener(new DownloadListener() {
+                @Override
+                public void onDownloadStart(String url, String userAgent, String contentDisposition, String mimetype, long contentLength) {
+
+                    try {
+
+                        if (isRequiredPermissionsGiven()) {
+
+                            dialog = ProgressDialog.show(MainActivity.this, "","Downloading \n Please wait..", true);
+                            String base64String = url;
+                            String base64Image = base64String.split(",")[1];
+                            byte[] decodedString = Base64.decode(base64Image, Base64.DEFAULT);
+                            Bitmap decodedByte = BitmapFactory.decodeByteArray(decodedString, 0, decodedString.length);
+
+                            File cachePath = null;
+
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                cachePath = new File(MainActivity.this.getExternalFilesDir(null)+"/");
+                            } else {
+                                cachePath =new File( Environment.getExternalStorageDirectory().getAbsolutePath());
+
+                            }
 
 
-    }//MainActivity Ends here
+                            FileOutputStream stream = new FileOutputStream(cachePath + "/image.png"); // overwrites this image every time
+                            decodedByte.compress(Bitmap.CompressFormat.PNG, 100, stream);
+                            stream.close();
 
+                            File imagePath = null;
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                                imagePath = new File(MainActivity.this.getExternalFilesDir(null)+"/");
+                            } else {
+                                imagePath =new File( Environment.getExternalStorageDirectory().getAbsolutePath());
 
+                            }
 
+                            File newFile = new File(imagePath, "image.png");
+                            Uri contentUri = FileProvider.getUriForFile(MainActivity.this, "com.nitte.qacode.fileprovider", newFile);
 
+                            if (contentUri != null) {
+                                Intent shareIntent = new Intent();
+                                shareIntent.setAction(Intent.ACTION_SEND);
+                                shareIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION); // temp permission for receiving app to read this file
+                                shareIntent.setDataAndType(contentUri, getContentResolver().getType(contentUri));
+                                shareIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
+                                dialog.dismiss();
+                                startActivity(Intent.createChooser(shareIntent, "Choose an app"));
+                            }
+                        } else {
+                            isAppFirstTime = true;
+                            checkAndAskPermission();
+                        }
+
+                    } catch (Exception e) {
+                        Log.i("ERROR", "Errro -->" + e.getMessage());
+                    }
+                }
+            });
+
+        } catch (Exception e) {
+            Log.e("ERROR", "Error in MainActivity (loadWebview) -->" + e.getMessage());
+        }
+    }
+
+    private class QRCodeWebviewClientObj extends WebViewClient {
+
+        @SuppressWarnings("deprecation")
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            view.loadUrl(url);
+            return true;
+        }
+
+        @Override
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+            dialog = ProgressDialog.show(MainActivity.this, "","Please wait..", true);
+
+        }
+
+        @SuppressWarnings("deprecation")
+        @Override
+        public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
+        }
+
+        @TargetApi(android.os.Build.VERSION_CODES.M)
+        @Override
+        public void onReceivedError(WebView view, WebResourceRequest req, WebResourceError rerr) {
+            // Redirect to deprecated method, so you can use it in all SDK versions
+
+            onReceivedError(view, rerr.getErrorCode(), rerr.getDescription().toString(), req.getUrl().toString());
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            dialog.dismiss();
+        }
+    }
+
+    //Check for the permission
+    private boolean isRequiredPermissionsGiven() {
+
+        boolean isPermitted = true;
+        try {
+
+            int readExternalStorage = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.READ_EXTERNAL_STORAGE);
+            int writeExternalStorage = ContextCompat.checkSelfPermission(getApplicationContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+            if (readExternalStorage == PackageManager.PERMISSION_GRANTED && writeExternalStorage == PackageManager.PERMISSION_GRANTED) {
+                isPermitted = true;
+            } else {
+                isPermitted = false;
+            }
+
+        } catch (Exception e) {
+            Log.e("ERROR", "Error in MainActivity (isRequiredPermissionsGiven) -->" + e.getMessage());
+        }
+
+        return isPermitted;
+    }
+
+    //This executes, when the user perminanatly disable permission, we are takin him to app settngs
+    public void showPromptToEnablePermission() {
+
+        try {
+
+            android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(MainActivity.this);
+            builder.setMessage("We need your permission, to download and share the QR Code image.")
+                    .setCancelable(false)
+                    .setPositiveButton("OK", new DialogInterface.OnClickListener() {
+                        public void onClick(DialogInterface dialog, int id) {
+
+                            finish();
+                            Intent intent = new Intent();
+                            intent.setAction(Settings.ACTION_APPLICATION_DETAILS_SETTINGS);
+                            Uri uri = Uri.fromParts("package", getPackageName(), null);
+                            intent.setData(uri);
+                            startActivity(intent);
+
+                        }
+                    });
+            android.app.AlertDialog alert = builder.create();
+            alert.show();
+            alert.getButton(alert.BUTTON_POSITIVE).setTextColor(Color.parseColor("#003F58"));
+
+        } catch (Exception e) {
+            Log.e("ERROR", "Error in AppLauncherActivity (showPromptToEnablePermission) --- >" + e.getMessage());
+        }
+    }
+}
