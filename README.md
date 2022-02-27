@@ -1,1 +1,1 @@
-# QR Code generation and sharing
+# Dynamic QR Code Generator
